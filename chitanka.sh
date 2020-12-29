@@ -23,7 +23,7 @@ mysql_chitanka="mysql -u${mysql_ch_user} -p${mysql_ch_user_password} ${mysql_ch_
 nginx_chitanka_vhost='chitanka.conf'
 nginx_chitanka_vhost_path="${nginx_vhost_available}/${nginx_chitanka_vhost}"
 nginx_vhosts_available='/etc/nginx/sites-available'
-nginx_vhost_enabled='/etc/nginx/sites-enabled'
+nginx_vhosts_enabled='/etc/nginx/sites-enabled'
 
 install_pkg='apt install -y'
 
@@ -202,8 +202,10 @@ install_web_server () {
 
 generate_nginx_vhost(){
 
+	clear
 	color_echo $color_bold_white "Генериране на Nginx съвместим виртуален хост"
 	log "[Инсталация] Генериране на Nginx виртуален хост"
+	echo && echo
 	local php_locate_sockfile=$(cd /etc/php/; grep -ar "php7.*-fpm.sock" | awk {'print $3'})
 	log "[Инсталация] Пълен път към sock файла на PHP: $php_locate_sockfile"
 
