@@ -106,14 +106,14 @@ install() {
 	install_web_server
 
 	clear
-	#install_db_server
+	install_db_server
 
 	clear
-	#create_chitanka_db
+	create_chitanka_db
 
 	clear
-	#install_chitanka_software
-	#get_chitanka_content
+	install_chitanka_software
+	get_chitanka_content
 
 	echo_success
 }
