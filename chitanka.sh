@@ -21,7 +21,7 @@ mysql_chitanka="mysql -u${mysql_ch_user} -p${mysql_ch_user_password} ${mysql_ch_
 
 ## Nginx 
 nginx_chitanka_vhost='chitanka.conf'
-nginx_chitanka_vhost_path="${nginx_vhost_available}/${nginx_chitanka_vhost}"
+nginx_chitanka_vhost_path='/etc/nginx/sites-available/chitanka.conf'
 nginx_vhosts_available='/etc/nginx/sites-available'
 nginx_vhosts_enabled='/etc/nginx/sites-enabled'
 
@@ -371,6 +371,10 @@ is_apache_installed () {
 	if [[ ! `ps -A | grep 'apache\|httpd'` ]]; then return 1; fi
 }
 
+dev(){
+echo $nginx_chitanka_vhost_path
+}
+
 case "$1" in
 	install)
 		install
@@ -388,7 +392,7 @@ case "$1" in
 		addcron
 	;;
 	dev)
-		generate_nginx_vhost
+		dev
 	;;
 	*)
 		show_help
