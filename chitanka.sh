@@ -267,7 +267,7 @@ generate_nginx_vhost(){
 EOF
 	
 	log "[Инсталация] Генериран е виртуален хост за Nginx и е добавен: $nginx_vhosts_available/$nginx_chitanka_vhost"
-	ln -s $nginx_chitanka_vhost_path $nginx_vhosts_enabled
+	ln -s $nginx_chitanka_vhost_path $nginx_vhosts_enabled/
 	log "[Инсталация] Добавен е символичен линк в $nginx_vhosts_enabled" 
 
 	restart_web_server
