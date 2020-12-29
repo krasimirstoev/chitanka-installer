@@ -228,7 +228,7 @@ generate_nginx_vhost(){
 	fi
 
 	if [ -d $nginx_vhosts_available ]; then
-		cat > ${nginx_vhosts_available}$nginx_chitanka_vhost <<EOF
+		cat > $nginx_chitanka_vhost_path <<EOF
 	server {
 	listen 80;
 
