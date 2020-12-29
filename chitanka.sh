@@ -17,7 +17,7 @@ mysql_ch_password='chitanka'
 mysql_ch_database='chitanka'
 mysql_db_dump='http://download.chitanka.info/chitanka.sql.gz'
 mysql_root="mysql -uroot -p${mysql_service_password}"
-mysql_chitanka="mysql -u${mysql_ch_user} -p${mysql_ch_user_password} ${mysql_ch_database}"
+mysql_chitanka="mysql -u${mysql_ch_user} -p${mysql_ch_password} ${mysql_ch_database}"
 
 ## Nginx 
 nginx_chitanka_vhost='chitanka.conf'
@@ -304,11 +304,11 @@ install_db_server () {
 create_chitanka_db () {
 	color_echo $color_bold_green "Създаване на потребителско име и база от данни за огледалото."
 	sleep 2
-	$mysql_root -e "CREATE USER '$mysql_ch_user'@'localhost' IDENTIFIED BY '$mysql_ch_user_password'"
+	$mysql_root -e "CREATE USER '$mysql_ch_user'@'localhost' IDENTIFIED BY '$mysql_ch_password'"
 	$mysql_root -e "GRANT ALL PRIVILEGES ON *.* TO '$mysql_ch_user'@'localhost'"
 	$mysql_root -e "FLUSH PRIVILEGES"
 	$mysql_root -e "CREATE DATABASE $mysql_ch_database"
-	log "Създаден е MySQL потребител със служебна парола: $mysql_ch_user_password"
+	log "Създаден е MySQL потребител със служебна парола: $mysql_ch_password"
 	log "Създадена е MySQL база от данни: $mysql_ch_database"
 
 	curl $mysql_db_dump | gunzip | $mysql_chitanka
