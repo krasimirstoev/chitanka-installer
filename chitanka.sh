@@ -194,7 +194,7 @@ install_basic_packages () {
 install_web_server () {
 	color_echo $color_bold_green "Започва инсталацията на уеб сървъра."
 	sleep 2
-	$install_okg nginx php-fpm php-gd php-curl php-xsl php-intl php-zip
+	$install_pkg nginx php-fpm php-gd php-curl php-xsl php-intl php-zip
 	log "[Инсталация] Инсталирани са пакетите свързани с работата на уеб сървъра."
 	#cp $installer_dir/nginx-vhost.conf /etc/nginx/sites-enabled/chitanka
 	generate_nginx_vhost
