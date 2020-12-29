@@ -40,37 +40,51 @@ pre_install_checks(){
 
 local debian_version=$(sed 's/\..*//' /etc/debian_version)
 
-# is debian based?
-if [ ! -f /etc/debian_version ]; then
-	clear
-	color_echo $color_bold_red "Използваната GNU/Linux дистрибуция не е Debian."
-	log "[Прединсталационна проверка] Използваната дистрибуция не е Debian: липсва /etc/debian_version"
-	exit 1;
-else
-	clear
-	color_echo $color_bold_green "Използваната дистрибуция е Debian базирана."
-	sleep 5
-fi
+	# is debian based?
+	if [ ! -f /etc/debian_version ]; then
+		clear
+		color_echo $color_bold_red "Използваната GNU/Linux дистрибуция не е Debian."
+		log "[Прединсталационна проверка] ГРЕШКА: Използваната дистрибуция не е Debian: липсва /etc/debian_version"
+		exit 1;
+	else
+		clear
+		color_echo $color_bold_green "Използваната дистрибуция е Debian базирана."
+		sleep 5
+	fi
 
-# is current version is supported?
-if [ $debian_version != $debian_stable_version ]; then
-	clear
-	color_echo $color_bold_red "Версията на използваната Debian дистрибуция не се поддържа от инсталатора."
-	log "[Прединсталационна проверка] Текущата версия на Debian ($debian_version) дистрибуция е различна от поддържаната: $debian_stable_version"
-	exit 1;
-else
-	clear
-	color_echo $color_bold_green "Текущата версия на Debian дистрибуцията се поддържа."
+	# is current version supported?
+	if [ $debian_version != $debian_stable_version ]; then
+		clear
+		color_echo $color_bold_red "Версията на използваната Debian дистрибуция не се поддържа от инсталатора."
+		log "[Прединсталационна проверка] ГРЕШКА: Текущата версия на Debian ($debian_version) дистрибуция е различна от поддържаната: $debian_stable_version"
+		exit 1;
+	else
+		clear
+		color_echo $color_bold_green "Текущата версия на Debian дистрибуцията се поддържа."
 
-fi
+	fi
 
-# are you root?
-if [ "$(id -u)" != "0" ]; then
-	clear
-	color_echo $color_bold_red "Инсталаторът трябва да бъде стартиран с потребител ${color_bold_white}root${color_reset}. Следва изход." 1>&2
-	log "[Прединсталационна проверка] Инсталацията е стартирана с потребите: `whoami`"
-	exit 1
-fi
+	# are you root?
+	if [ "$(id -u)" != "0" ]; then
+		clear
+		color_echo $color_bold_red "Инсталаторът трябва да бъде стартиран с потребител ${color_bold_white}root${color_reset}. Следва изход." 1>&2
+		log "[Прединсталационна проверка] ГРЕШКА: Инсталацията е стартирана с потребите: `whoami`"
+		exit 1;
+	fi
+
+	if [ -d "/etc/nginx/" ]; then
+		echo_color $color_bold_red "Директорията ${color_bold_white}/etc/nginx/${color_reset} съществува. Вероятно вече има активна Nginx инсталация. Инсталацията ще бъде спряна, за да не бъде засегната работата на наличните сайтове."
+		log "[Прединсталационна проверка] ГРЕШКА: Вероятност за налична Nginx инстанция. Инсталацията е прекратена."
+		exit 1;
+	else
+		color_echo $color_bold_green "Няма налична Nginx инсталация и процедурата може да продължи."
+	fi
+
+	if [ ! `ps -A | grep 'nginx\|httpd'` ]; then
+		echo "OK"
+	else
+		echo "NOT OK"
+	fi
 
 }
 
@@ -122,10 +136,10 @@ uninstall () {
 	rm -rf $chitanka_dir
 	rm -rf $installer_dir
 
-	# drop database
+	# drop chitanka user and database
 	$mysql_root -e "DROP DATABASE ${mysql_ch_database}"
-
-	color_echo $color_bold_red "Файловото съдържание и базата данни на Моята библиотека са премахнати от сървъра."
+	$mysql_root -e "DROP USER '${mysql_ch_user}'@'localhost';"
+	color_echo $color_bold_red "Файловото съдържание, MySQL потребителят и базата данни на Моята библиотека са премахнати от сървъра."
 	echo && echo
 	color_echo $color_bold_red "Запазена е единствено конфигурацията на уеб сървъра."
 }
@@ -196,7 +210,6 @@ install_web_server () {
 	sleep 2
 	$install_pkg nginx php-fpm php-gd php-curl php-xsl php-intl php-zip
 	log "[Инсталация] Инсталирани са пакетите свързани с работата на уеб сървъра."
-	#cp $installer_dir/nginx-vhost.conf /etc/nginx/sites-enabled/chitanka
 	generate_nginx_vhost
 }
 
@@ -207,7 +220,15 @@ generate_nginx_vhost(){
 	log "[Инсталация] Генериране на Nginx виртуален хост"
 	echo && echo
 	local php_locate_sockfile=$(cd /etc/php/; grep -ar "php7.*-fpm.sock" | awk {'print $3'})
-	log "[Инсталация] Пълен път към sock файла на PHP: $php_locate_sockfile"
+	
+	if [ -n $php_locate_sockfile ]; then
+		log "[Инсталация] Наличен е PHP-FPM sockfile."
+		php_fpm_sockfile="${php_locate_sockfile}"
+		log "[Инсталация] Пътят до sockfile е: $php_fpm_sockfile"
+	else
+		log "[Инсталация] ГРЕШКА: Не е намерен наличен PHP-FPM sockfile."
+		exit 1;
+	fi
 
 	color_echo $color_bold_white "По подразбиране, в конфигурацията е заложен домейн ${default_domain}. В случай че разполагате със собствен домейн, бихте могли да го използвате за конфигурацията на огледалото."
 	echo
@@ -245,7 +266,7 @@ generate_nginx_vhost(){
 
 	location ~ /(index|index_dev)\.php($|/) {
 		# via a unix socket
-		fastcgi_pass unix:$php_locate_sockfile;
+		fastcgi_pass unix:$php_fpm_sockfile;
 		# via an ip address
 		#fastcgi_pass 127.0.0.1:9000;
 		fastcgi_split_path_info ^(.+\.php)(/.*)$;
@@ -266,7 +287,7 @@ generate_nginx_vhost(){
 }
 EOF
 	
-	log "[Инсталация] Генериран е виртуален хост за Nginx и е добавен: $nginx_vhosts_available/$nginx_chitanka_vhost"
+	log "[Инсталация] Генериран е виртуален хост за Nginx и е добавен, като пълният път до него е: $nginx_chitanka_vhost_path"
 	ln -s $nginx_chitanka_vhost_path $nginx_vhosts_enabled/
 	log "[Инсталация] Добавен е символичен линк в $nginx_vhosts_enabled" 
 
@@ -274,7 +295,7 @@ EOF
 	log "[Инсталация] Рестартиране на уеб сървъра..."
 	else
 		color_echo $color_bold_red "Директорията $nginx_vhosts_available не е налична и инсталацията не може да продължи."
-		log "[Инсталация] Директорията с наличните виртуални хостове ($nginx_vhosts_available) не е налична и инсталацията е прекратена."
+		log "[Инсталация] ГРЕШКА: Директорията с Nginx виртуалните хостове ($nginx_vhosts_available) не е налична и инсталацията е прекратена."
 		exit 1;
 	fi
 }
@@ -371,8 +392,15 @@ is_apache_installed () {
 	if [[ ! `ps -A | grep 'apache\|httpd'` ]]; then return 1; fi
 }
 
-dev(){
-echo $nginx_chitanka_vhost_path
+dev (){
+
+        if [ ! `ps -A | grep 'nginx|httpd'` ]; then
+                echo "OK"
+        else
+                echo "NOT OK"
+        fi
+
+
 }
 
 case "$1" in
