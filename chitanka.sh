@@ -1,47 +1,43 @@
 #!/usr/bin/env bash
 
-INSTALLER_GIT=https://github.com/chitanka/chitanka-installer.git
-INSTALLER_DIR=${INSTALLER_DIR:-/root/chitanka-installer}
-INSTALL_LOG=`dirname $0`/install.log
-CHITANKA_DIR=/var/www/chitanka
-CHITANKA_GIT='https://github.com/chitanka/chitanka-production.git'
-CHITANKA_RSYNC_CONTENT='rsync.chitanka.info::content'
-DEFAULT_DOMAIN='chitanka.local'
-debian_stable_version='stretch'
+installer_git=https://github.com/chitanka/chitanka-installer.git
+installer_dir=${installer_dir:-/root/chitanka-installer}
+install_log=`dirname $0`/install.log
+chitanka_dir=/var/www/chitanka
+chitanka_git='https://github.com/chitanka/chitanka-production.git'
+chitanka_rsync_content='rsync.chitanka.info::content'
+default_domain='chitanka.local'
+debian_stable_version='buster'
 
 ## Database section
-MYSQL_SERVICE_PASSWORD='cH-00-service_paS$W'
-MYSQL_CH_USER='chitanka'
-MYSQL_CH_USER_PASSWORD='chitanka'
-MYSQL_CH_DATABASE='chitanka'
-MYSQL_DB_DUMP='http://download.chitanka.info/chitanka.sql.gz'
-MYSQL_ROOT="mysql -uroot -p${MYSQL_SERVICE_PASSWORD}"
-MYSQL_CHITANKA="mysql -u${MYSQL_CH_USER} -p${MYSQL_CH_USER_PASSWORD} ${MYSQL_CH_DATABASE}"
+mysql_service_password='cH-00-service_paS$W'
+mysql_ch_user='chitanka'
+mysql_ch_password='chitanka'
+mysql_ch_database='chitanka'
+mysql_db_dump='http://download.chitanka.info/chitanka.sql.gz'
+mysql_root="mysql -uroot -p${mysql_service_password}"
+mysql_chitanka="mysql -u${mysql_ch_user} -p${mysql_ch_user_password} ${mysql_ch_database}"
 
-INSTALL_PKG='apt install -y'
+install_pkg='apt install -y'
 
 ## colors
-COLOR_BOLD_BLACK='\033[1;30m'
-COLOR_BOLD_RED='\033[1;31m'
-COLOR_BOLD_GREEN='\033[1;32m'
-COLOR_BOLD_YELLOW='\033[1;33m'
-COLOR_BOLD_BLUE='\033[1;34m'
-COLOR_BOLD_PURPLE='\033[1;35m'
-COLOR_BOLD_CYAN='\033[1;36m'
-COLOR_BOLD_WHITE='\033[1;37m'
-COLOR_RESET='\033[0m'
+color_bold_red='\033[1;31m'
+color_bold_green='\033[1;32m'
+color_bold_yellow='\033[1;33m'
+color_bold_white='\033[1;37m'
+color_reset='\033[0m'
 
 ##################################
 
 install() {
 	# only root is allowed to execute the installer
 	if [ "$(id -u)" != "0" ]; then
-		color_echo $COLOR_BOLD_RED "Инсталаторът трябва да бъде стартиран с потребител ${COLOR_BOLD_WHITE}root${COLOR_RESET}!" 1>&2
+		color_echo $color_bold_red "Инсталаторът трябва да бъде стартиран с потребител ${color_bold_white}root${color_reset}. Следва изход." 1>&2
 		exit 1
 	fi
 
 	if ! is_debian_based; then
-		color_echo $COLOR_BOLD_RED "Използваната версия на Debian не е последната актуална. Следва изход."
+		color_echo $color_bold_red "Използваната версия на Debian не е сред поддържаните. Следва изход."
 		exit 1
 	fi
 
@@ -50,12 +46,12 @@ install() {
 	clear
 	splash_screen
 
-	color_echo $COLOR_BOLD_GREEN "Желаете ли процедурата по инсталация да започне? Изберете y (да) или n (не)."
+	color_echo $color_bold_green "Желаете ли процедурата по инсталация да започне? Изберете y (да) или n (не)."
 	read yn
 	yn=${yn:-y}
 	if [ "$yn" != "y" ]; then
-		color_echo $COLOR_BOLD_RED "Избрахте да прекратите процедурата по инсталация на огледалото. Следва изход."
-		log "Инсталацията беше прекратена по желание на потребителя."
+		color_echo $color_bold_red "Избрахте да прекратите процедурата по инсталация на огледалото. Следва изход."
+		log "Инсталацията e прекратена по желание на потребителя."
 		exit
 	fi
 
@@ -90,21 +86,21 @@ install() {
 }
 
 uninstall () {
-	rm -rf $CHITANKA_DIR
-	rm -rf $INSTALLER_DIR
+	rm -rf $chitanka_dir
+	rm -rf $installer_dir
 
 	# drop database
-	$MYSQL_ROOT -e "DROP DATABASE ${MYSQL_CH_DATABASE}"
+	$mysql_root -e "DROP DATABASE ${mysql_ch_database}"
 
-	color_echo $COLOR_BOLD_RED "Файловото съдържание и базата данни на Моята библиотека бяха премахнати от сървъра."
+	color_echo $color_bold_red "Файловото съдържание и базата данни на Моята библиотека са премахнати от сървъра."
 	echo && echo
-	color_echo $COLOR_BOLD_RED "Запазена е единствено конфигурацията на уеб сървъра."
+	color_echo $color_bold_red "Запазена е единствено конфигурацията на уеб сървъра."
 }
 
 changedomain () {
-	color_echo $COLOR_BOLD_WHITE "Моля, въведете желаното домейн име:"
+	color_echo $color_bold_white "Моля, въведете желаното домейн име:"
 	read own_domain_name
-	color_echo $COLOR_BOLD_RED "Избрахте домейн името: $own_domain_name"
+	color_echo $color_bold_red "Избрахте домейн името: $own_domain_name"
 
 	set_domain_in_webhost $own_domain_name
 	set_domain_in_localhost $own_domain_name
@@ -113,48 +109,47 @@ changedomain () {
 
 addcron () {
 	crontab -l > chitanka_cron
-	echo "0 0 * * * ${CHITANKA_DIR}/bin/update" >> chitanka_cron
+	echo "0 0 * * * ${chitanka_dir}/bin/update" >> chitanka_cron
 	crontab chitanka_cron
 	rm -f chitanka_cron
 }
 
 show_help () {
 	echo
-	echo -e "Употреба на инсталатора:\n\n\t${COLOR_BOLD_GREEN}$0${COLOR_RESET} ${COLOR_BOLD_WHITE}команда${COLOR_RESET}"
+	echo -e "Употреба на инсталатора:\n\n\t${color_bold_green}$0${color_reset} ${color_bold_white}команда${color_reset}"
 	echo
 	echo -e "Можете да използвате следните команди:"
-	echo -e "${COLOR_BOLD_WHITE} install ${COLOR_RESET}      - автоматична инсталация и конфигурация на огледало на Моята библиотека"
-	echo -e "${COLOR_BOLD_WHITE} getcontent ${COLOR_RESET}   - сваляне на съдържание за огледалото на Моята библиотека (може да бъде изпълнено и при командата ${COLOR_BOLD_WHITE}install${COLOR_RESET})"
-	echo -e "${COLOR_BOLD_WHITE} changedomain ${COLOR_RESET} - можете да изберете нов домейн, който да бъде конфигуриран в уеб сървъра"
-	echo -e "${COLOR_BOLD_WHITE} addcron ${COLOR_RESET}      - добавят се cron задачите, необходими за обновяването на огледалото"
-	echo -e "${COLOR_BOLD_WHITE} uninstall ${COLOR_RESET}    - изтрива съдържанието на вече инсталирано огледало на Моята библиотека"
+	echo -e "${color_bold_white} install ${color_reset}      - автоматична инсталация и конфигурация на огледало на Моята библиотека"
+	echo -e "${color_bold_white} getcontent ${color_reset}   - сваляне на съдържание за огледалото на Моята библиотека (може да бъде изпълнено и при командата ${color_bold_white}install${color_reset})"
+	echo -e "${color_bold_white} changedomain ${color_reset} - можете да изберете нов домейн, който да бъде конфигуриран в уеб сървъра"
+	echo -e "${color_bold_white} addcron ${color_reset}      - добавят се cron задачите, необходими за обновяването на огледалото"
+	echo -e "${color_bold_white} uninstall ${color_reset}    - изтрива съдържанието на вече инсталирано огледало на Моята библиотека"
 	echo
 }
 
 splash_screen () {
 	echo
-	echo -e "${COLOR_BOLD_YELLOW}**************************************************${COLOR_RESET}"
-	echo -e "${COLOR_BOLD_YELLOW}*${COLOR_RESET} ${COLOR_BOLD_WHITE}       Читанка - автоматичен инсталатор       ${COLOR_RESET} ${COLOR_BOLD_YELLOW}*${COLOR_RESET}"
-	echo -e "${COLOR_BOLD_YELLOW}**************************************************${COLOR_RESET}"
-	color_echo $COLOR_BOLD_WHITE "След секунди ще започне инсталацията на необходимия софтуер за МОЯТА БИБЛИОТЕКА."
+	echo -e "${color_bold_yellow}**************************************************${color_reset}"
+	echo -e "${color_bold_yellow}*${color_reset} ${color_bold_white}       Читанка - автоматичен инсталатор       ${color_reset} ${color_bold_yellow}*${color_reset}"
+	echo -e "${color_bold_yellow}**************************************************${color_reset}"
+	color_echo $color_bold_white "След секунди ще започне инсталацията на необходимия софтуер за МОЯТА БИБЛИОТЕКА."
 	echo
-	color_echo $COLOR_BOLD_WHITE "За правилната работа на софтуера е необходимо:"
-	color_echo $COLOR_BOLD_WHITE "1) Да разполагате с най-малко 20 гигабайта дисково пространство."
-	color_echo $COLOR_BOLD_WHITE "2) Да не прекъсвате процеса по инсталация, докато не приключи."
-	echo -e "${COLOR_BOLD_YELLOW}**************************************************${COLOR_RESET}"
+	color_echo $color_bold_white "За правилната работа на софтуера е необходимо:"
+	color_echo $color_bold_white "1) Да разполагате с най-малко 20 гигабайта дисково пространство."
+	color_echo $color_bold_white "2) Да не прекъсвате процеса по инсталация, докато не приключи."
+	echo -e "${color_bold_yellow}**************************************************${color_reset}"
 	echo
 }
 
 update_system () {
-	color_echo $COLOR_BOLD_GREEN "Започва обновяване на операционната система."
+	color_echo $color_bold_green "Започва обновяване на операционната система."
 	sleep 1
 	apt update -y
-	#apt upgrade -y
 	log "Операционната система беше обновена."
 }
 
 install_basic_packages () {
-	color_echo $COLOR_BOLD_GREEN "Инсталация на системен софтуер."
+	color_echo $color_bold_green "Инсталация на системен софтуер."
 	sleep 2
 	$INSTALL_PKG git curl rsync
 	log "Инсталиран е необходимият системен софтуер."
@@ -164,7 +159,7 @@ install_basic_packages () {
 }
 
 install_web_server () {
-	color_echo $COLOR_BOLD_GREEN "Започва инсталацията на уеб сървъра."
+	color_echo $color_bold_green "Започва инсталацията на уеб сървъра."
 	sleep 2
 	$INSTALL_PKG nginx php-fpm php-gd php-curl php-xsl php-intl php-zip
 	cp $INSTALLER_DIR/nginx-vhost.conf /etc/nginx/sites-enabled/chitanka
@@ -175,21 +170,21 @@ restart_web_server () {
 }
 
 set_domain () {
-	color_echo $COLOR_BOLD_WHITE "По подразбиране, в конфигурацията е заложен домейн ${DEFAULT_DOMAIN}. В случай че разполагате със собствен домейн, бихте могли да го използвате за конфигурацията на огледалото."
+	color_echo $color_bold_white "По подразбиране, в конфигурацията е заложен домейн ${DEFAULT_DOMAIN}. В случай че разполагате със собствен домейн, бихте могли да го използвате за конфигурацията на огледалото."
 	echo
-	color_echo $COLOR_BOLD_WHITE "Желаете ли да използвате свой домейн? Изберете (y) за да посочите свой домейн или (n) за да продължи инсталацията с домейна ${DEFAULT_DOMAIN}."
+	color_echo $color_bold_white "Желаете ли да използвате свой домейн? Изберете (y) за да посочите свой домейн или (n) за да продължи инсталацията с домейна ${DEFAULT_DOMAIN}."
 
 	read yn
 	yn=${yn:-y}
 	if [ "$yn" = "n" ]; then
-		color_echo $COLOR_BOLD_GREEN "Избрахте да използвате служебното име ${DEFAULT_DOMAIN}. Инсталацията продължава."
+		color_echo $color_bold_green "Избрахте да използвате служебното име ${DEFAULT_DOMAIN}. Инсталацията продължава."
 		log "Избран домейн за инсталацията: служебно (${DEFAULT_DOMAIN})."
 		set_domain_in_localhost $DEFAULT_DOMAIN
 		log "Избран е заложеният по подразбиране домейн ${DEFAULT_DOMAIN}."
 	else
-		color_echo $COLOR_BOLD_WHITE "Моля, въведете желания домейн:"
+		color_echo $color_bold_white "Моля, въведете желания домейн:"
 		read own_domain_name
-		color_echo $COLOR_BOLD_RED "Избрахте домейн: $own_domain_name"
+		color_echo $color_bold_red "Избрахте домейн: $own_domain_name"
 		set_domain_in_webhost $own_domain_name
 		set_domain_in_localhost $own_domain_name
 		log "Избран е различен от заложения домейн: $own_domain_name и е добавен в конфигурационните файлове."
@@ -200,7 +195,6 @@ set_domain () {
 
 set_domain_in_webhost () {
 	sed -i "s/${DEFAULT_DOMAIN}/$1/g" /etc/nginx/sites-enabled/chitanka
-	#sed -i "s/${DEFAULT_DOMAIN}/$1/g" /etc/apache2/sites-enabled/000-default.conf
 }
 
 set_domain_in_localhost () {
@@ -208,7 +202,7 @@ set_domain_in_localhost () {
 }
 
 install_db_server () {
-	color_echo $COLOR_BOLD_GREEN "Инсталация на база от данни MariaDB."
+	color_echo $color_bold_green "Инсталация на база от данни MariaDB."
 	sleep 2
 	debconf-set-selections <<< "mariadb-server mysql-server/root_password password $MYSQL_SERVICE_PASSWORD"
 	debconf-set-selections <<< "mariadb-server mysql-server/root_password_again password $MYSQL_SERVICE_PASSWORD"
@@ -217,7 +211,7 @@ install_db_server () {
 }
 
 create_chitanka_db () {
-	color_echo $COLOR_BOLD_GREEN "Създаване на потребителско име и база от данни за огледалото."
+	color_echo $color_bold_green "Създаване на потребителско име и база от данни за огледалото."
 	sleep 2
 	$MYSQL_ROOT -e "CREATE USER '$MYSQL_CH_USER'@'localhost' IDENTIFIED BY '$MYSQL_CH_USER_PASSWORD'"
 	$MYSQL_ROOT -e "GRANT ALL PRIVILEGES ON *.* TO '$MYSQL_CH_USER'@'localhost'"
@@ -231,7 +225,7 @@ create_chitanka_db () {
 }
 
 install_chitanka_software () {
-	color_echo $COLOR_BOLD_GREEN "Вземане на кода от хранилището в GitHub."
+	color_echo $color_bold_green "Вземане на кода от хранилището в GitHub."
 	sleep 2
 
 	rm -rf $CHITANKA_DIR
@@ -246,21 +240,21 @@ install_chitanka_software () {
 }
 
 get_chitanka_content () {
-	color_echo $COLOR_BOLD_GREEN "Желаете ли да свалите текстовото съдържание? Изберете y (да) или n (не)."
-	echo -e "Можете да го направите и по всяко друго време, като стартирате инсталатора с командата ${COLOR_BOLD_GREEN}getcontent${COLOR_RESET}."
+	color_echo $color_bold_green "Желаете ли да свалите текстовото съдържание? Изберете y (да) или n (не)."
+	echo -e "Можете да го направите и по всяко друго време, като стартирате инсталатора с командата ${color_bold_green}getcontent${color_reset}."
 	read yn
 	yn=${yn:-y}
 	if [ "$yn" == "y" ]; then
 		clear
 		rsync_content
 	else
-		echo -e "Избрахте да ${COLOR_BOLD_RED}НЕ${COLOR_RESET} сваляте съдържание."
+		echo -e "Избрахте да ${color_bold_red}НЕ${color_reset} сваляте съдържание."
 		log "Избрана е опция да не бъде свалено съдържанието."
 	fi
 }
 
 rsync_content () {
-	color_echo $COLOR_BOLD_GREEN "Сваляне на съдържанието."
+	color_echo $color_bold_green "Сваляне на съдържанието."
 	sleep 2
 	log "rsync процедурата е СТАРТИРАНА"
 	rsync -avz --delete ${CHITANKA_RSYNC_CONTENT}/ $CHITANKA_DIR/web/content
@@ -268,13 +262,13 @@ rsync_content () {
 }
 
 echo_success () {
-	color_echo $COLOR_BOLD_GREEN "Огледалната версия на Моята библитека беше инсталирана."
-	color_echo $COLOR_BOLD_GREEN "Ако огледалото ви е публично достъпно, можете да споделите адреса му във форума на Моята библиотека:"
-	color_echo $COLOR_BOLD_GREEN "https://forum.chitanka.info"
+	color_echo $color_bold_green "Огледалната версия на Моята библитека беше инсталирана."
+	color_echo $color_bold_green "Ако огледалото ви е публично достъпно, можете да споделите адреса му във форума на Моята библиотека:"
+	color_echo $color_bold_green "https://forum.chitanka.info"
 }
 
 color_echo () {
-	echo -e $1$2$COLOR_RESET
+	echo -e $1$2$color_reset
 }
 
 log () {
@@ -284,7 +278,7 @@ log () {
 
 is_debian_stable () {
 	if [[ ! `grep 'VERSION=' /etc/os-release | grep $debian_stable_version` ]]; then return 1; fi
-
+	
 }
 is_ubuntu () {
 	if [[ ! `grep 'ID=' /etc/os-release | grep ubuntu` ]]; then return 1; fi
@@ -315,6 +309,9 @@ case "$1" in
 	;;
 	addcron)
 		addcron
+	;;
+	dev)
+		is_ubuntu
 	;;
 	*)
 		show_help
