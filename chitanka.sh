@@ -73,17 +73,19 @@ local debian_version=$(sed 's/\..*//' /etc/debian_version)
 	fi
 
 	if [ -d "/etc/nginx/" ]; then
-		echo_color $color_bold_red "Директорията ${color_bold_white}/etc/nginx/${color_reset} съществува. Вероятно вече има активна Nginx инсталация. Инсталацията ще бъде спряна, за да не бъде засегната работата на наличните сайтове."
+		color_echo $color_bold_red "Директорията ${color_bold_white}/etc/nginx/${color_reset} съществува. Вероятно вече има активна Nginx инстанция. Инсталацията ще бъде спряна, за да не бъде засегната работата на наличните сайтове."
 		log "[Прединсталационна проверка] ГРЕШКА: Вероятност за налична Nginx инстанция. Инсталацията е прекратена."
 		exit 1;
 	else
 		color_echo $color_bold_green "Няма налична Nginx инсталация и процедурата може да продължи."
 	fi
 
-	if [ ! `ps -A | grep 'nginx\|httpd'` ]; then
-		echo "OK"
+	if [ -d "/etc/apache2/" ]; then
+		color_echo $color_bold_red "Директорията ${color_bold_white}/etc/apache2/${color_reset} съществува. Вероятно вече има активна Apache2 инстанция. Инсталацията ще бъде спряна, за да не бъде засегната работата на наличните сайтове."
+		log "[Прединсталационна проверка] ГРЕШКА: Вероятност за налична Apache2 инстанция. Инсталацията е прекратена"
+		exit 1;
 	else
-		echo "NOT OK"
+		color_echo $color_bold_green "Няма налична Apache2 инсталация и процедурата може да продължи."
 	fi
 
 }
@@ -386,10 +388,6 @@ color_echo () {
 log () {
 	logfile=${2:-$install_log}
 	echo "[`date +"%d.%m.%Y %T"`] $1" >> $logfile
-}
-
-is_apache_installed () {
-	if [[ ! `ps -A | grep 'apache\|httpd'` ]]; then return 1; fi
 }
 
 dev (){
