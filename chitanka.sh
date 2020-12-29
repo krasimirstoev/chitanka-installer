@@ -106,10 +106,6 @@ install() {
 	install_web_server
 
 	clear
-	set_domain
-	sleep 3
-
-	clear
 	install_db_server
 
 	clear
@@ -201,6 +197,7 @@ install_web_server () {
 	$install_okg nginx php-fpm php-gd php-curl php-xsl php-intl php-zip
 	log "[Инсталация] Инсталирани са пакетите свързани с работата на уеб сървъра."
 	#cp $installer_dir/nginx-vhost.conf /etc/nginx/sites-enabled/chitanka
+	generate_nginx_vhost
 }
 
 generate_nginx_vhost(){
