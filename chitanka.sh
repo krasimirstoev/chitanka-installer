@@ -21,9 +21,8 @@ mysql_chitanka="mysql -u${mysql_ch_user} -p${mysql_ch_user_password} ${mysql_ch_
 
 ## Nginx 
 nginx_chitanka_vhost='chitanka.conf'
-nginx_dir='/etc/nginx/'
-nginx_vhosts_available='${nginx_dir}sites-available/'
-nginx_vhost_enabled='${nginx_dir}sites-enabled/'
+nginx_vhosts_available='/etc/nginx/sites-available/'
+nginx_vhost_enabled='/etc/nginx/sites-enabled/'
 
 install_pkg='apt install -y'
 
