@@ -21,8 +21,9 @@ mysql_chitanka="mysql -u${mysql_ch_user} -p${mysql_ch_user_password} ${mysql_ch_
 
 ## Nginx 
 nginx_chitanka_vhost='chitanka.conf'
-nginx_vhosts_available='/etc/nginx/sites-available/'
-nginx_vhost_enabled='/etc/nginx/sites-enabled/'
+nginx_chitanka_vhost_path="${nginx_vhost_available}/${nginx_chitanka_vhost}"
+nginx_vhosts_available='/etc/nginx/sites-available'
+nginx_vhost_enabled='/etc/nginx/sites-enabled'
 
 install_pkg='apt install -y'
 
@@ -105,14 +106,14 @@ install() {
 	install_web_server
 
 	clear
-	install_db_server
+	#install_db_server
 
 	clear
-	create_chitanka_db
+	#create_chitanka_db
 
 	clear
-	install_chitanka_software
-	get_chitanka_content
+	#install_chitanka_software
+	#get_chitanka_content
 
 	echo_success
 }
@@ -262,9 +263,13 @@ generate_nginx_vhost(){
 	}
 }
 EOF
+	
+	log "[Инсталация] Генериран е виртуален хост за Nginx и е добавен: $nginx_vhosts_available/$nginx_chitanka_vhost"
+	ln -s $nginx_chitanka_vhost_path $nginx_vhosts_enabled
+	log "[Инсталация] Добавен е символичен линк в $nginx_vhosts_enabled" 
 
 	restart_web_server
-	log "[Инсталация] Рестартиране на уеб сървъра."
+	log "[Инсталация] Рестартиране на уеб сървъра..."
 	else
 		color_echo $color_bold_red "Директорията $nginx_vhosts_available не е налична и инсталацията не може да продължи."
 		log "[Инсталация] Директорията с наличните виртуални хостове ($nginx_vhosts_available) не е налична и инсталацията е прекратена."
@@ -278,7 +283,7 @@ restart_web_server () {
 
 
 set_domain_in_webhost () {
-	sed -i "s/${default_domain}/$1/g" /etc/nginx/sites-enabled/chitanka
+	sed -i "s/${default_domain}/$1/g" $nginx_chitanka_vhost_path
 }
 
 set_domain_in_localhost () {
